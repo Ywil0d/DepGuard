@@ -2,9 +2,14 @@
 
 Bu araştırmanın amacı, açık kaynaklı Python projelerinde kullanılan paket sürümlerini inceleyerek bu sürümlerle ilişkili bilinen güvenlik açıklarını belirlemek ve güvenlik riskiyle ilişkili göstergeleri karşılaştırmalı olarak analiz etmektir.
 
-Araştırmada paketlerin sürüm yaşı, bilinen güvenlik açığı sayısı ve mevcut olduğu durumlarda güvenlik açıklarının ciddiyet düzeyi değerlendirilecektir. DepGuard, bu bilgileri toplamak, düzenlemek ve analiz etmek amacıyla geliştirilecek bir Python araştırma prototipidir.
+Araştırmada paketlerin sürüm yaşı, bilinen güvenlik açığı sayısı ve mevcut olduğu durumlarda açıklıkların ciddiyet düzeyi değerlendirilecektir. DepGuard, bu bilgileri toplamak, düzenlemek ve analiz etmek amacıyla geliştirilecek bir Python araştırma prototipidir.
 
-Araştırma, paket sürümünün eski olmasının tek başına güvenlik açığı bulunduğunu göstermediği ve bilinen bir güvenlik açığı kaydına rastlanmamasının paketin tamamen güvenli olduğunu kanıtlamadığı varsayımlarını dikkate alacaktır.
+Araştırma; paket sürümünün eski olmasının tek başına güvenlik açığı bulunduğunu göstermediği ve bilinen bir güvenlik açığı kaydına rastlanmamasının paketin tamamen güvenli olduğunu kanıtlamadığı varsayımlarını dikkate alarak yürütülecektir.
+
+Proje kapsamında, açık kaynak Python projeleri ve bu projelerde kullanılan paket sürümleri incelenecektir. İhtiyaç duyulan paket ve sürüm bilgileri PyPI API, bilinen güvenlik açıkları ise OSV.dev API üzerinden elde edilecektir. Toplanan veriler eşleştirilerek her paket sürümü için belirlenen bu üç temel risk göstergesi hesaplanacaktır. Elde edilen veriler analiz edilip tablo ve özet sonuçlar hâlinde sunulacak; veri kaynakları, kullanılan yöntem ve araştırmanın sınırlılıkları GitHub deposunda belgelenecektir.
+
+Veri toplama sürecinin mümkün olduğunca otomatikleştirilmesi, eksik veya yinelenen kayıtların kontrol edilmesi ve analiz sonuçlarının grafiklerle desteklenmesi hedeflenmektedir. Paketler arasındaki risk göstergeleri karşılaştırılacak ve uygun durumlarda bu göstergeler arasındaki ilişkiler incelenecektir. Zaman ve kaynak yeterli olduğu takdirde, birden fazla göstergeyi birleştiren basit bir risk puanı oluşturulması ve sonuçların CSV formatında dışa aktarılması da planlanmaktadır.
+
 # 2. Araştırma Sorusu
 
 Açık kaynaklı Python projelerinde kullanılan paket sürümlerinin yaşı ve bu sürümlerle ilişkili bilinen güvenlik açıkları, paketlerin güvenlik riskini değerlendirmek amacıyla nasıl analiz edilebilir?
