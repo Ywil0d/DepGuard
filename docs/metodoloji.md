@@ -1,11 +1,11 @@
-1. Araştırmanın Amacı
+# 1. Araştırmanın Amacı
 
 Bu araştırmanın amacı, açık kaynaklı Python projelerinde kullanılan paket sürümlerini inceleyerek bu sürümlerle ilişkili bilinen güvenlik açıklarını belirlemek ve güvenlik riskiyle ilişkili göstergeleri karşılaştırmalı olarak analiz etmektir.
 
 Araştırmada paketlerin sürüm yaşı, bilinen güvenlik açığı sayısı ve mevcut olduğu durumlarda güvenlik açıklarının ciddiyet düzeyi değerlendirilecektir. DepGuard, bu bilgileri toplamak, düzenlemek ve analiz etmek amacıyla geliştirilecek bir Python araştırma prototipidir.
 
 Araştırma, paket sürümünün eski olmasının tek başına güvenlik açığı bulunduğunu göstermediği ve bilinen bir güvenlik açığı kaydına rastlanmamasının paketin tamamen güvenli olduğunu kanıtlamadığı varsayımlarını dikkate alacaktır.
-2. Araştırma Sorusu
+# 2. Araştırma Sorusu
 
 Açık kaynaklı Python projelerinde kullanılan paket sürümlerinin yaşı ve bu sürümlerle ilişkili bilinen güvenlik açıkları, paketlerin güvenlik riskini değerlendirmek amacıyla nasıl analiz edilebilir?
 Alt Araştırma Soruları
@@ -18,7 +18,7 @@ Alt Araştırma Soruları
 
     Sürüm yaşı ve güvenlik açığı göstergelerine dayalı sıralamalar arasında nasıl farklılıklar bulunmaktadır?
 
-3. Araştırma Yöntemi
+# 3. Araştırma Yöntemi
 
 Araştırmada nicel, betimsel ve karşılaştırmalı araştırma yaklaşımı kullanılacaktır.
 
@@ -40,17 +40,17 @@ Araştırma süreci şu aşamalardan oluşacaktır:
 
     Bulguların tablolar ve grafiklerle raporlanması.
 
-4. Veri Kaynakları ve Teknolojiler
-4.1. OSV.dev API
+# 4. Veri Kaynakları ve Teknolojiler
+## 4.1. OSV.dev API
 
 OSV.dev, paket ekosistemleri ve sürümlerle ilişkili bilinen güvenlik açıklarını sorgulamak amacıyla kullanılacaktır. Elde edilen kayıtlar, incelenen paket sürümleriyle ilişkileri bakımından değerlendirilecektir.
-4.2. PyPI API
+## 4.2. PyPI API
 
 PyPI API, Python paketlerine ve sürümlerine ilişkin bilgileri elde etmek, erişilebilir yayın tarihlerini incelemek ve paket bilgilerini doğrulamak amacıyla kullanılacaktır.
-4.3. GitHub açık kaynak projeleri
+## 4.3. GitHub açık kaynak projeleri
 
 GitHub üzerinde bulunan kamuya açık Python projeleri, araştırmanın örneklem kaynağını oluşturacaktır. Projelerin paket bildirimleri ve erişilebilir sürüm bilgileri incelenecektir.
-4.4. Kullanılacak teknolojiler
+## 4.4. Kullanılacak teknolojiler
 
     Python: Veri toplama, veri işleme ve analiz işlemleri.
 
@@ -61,7 +61,7 @@ GitHub üzerinde bulunan kamuya açık Python projeleri, araştırmanın örnekl
     GitHub REST API: Proje ve depo bilgilerinin elde edilmesi.
 
 Bu bölüm, araştırmada kullanılması planlanan teknolojileri açıklamaktadır. Gerçek uygulama durumu ve kullanılan uç noktalar, geliştirme sürecinde belgelenecektir.
-5. Örneklem Seçimi
+# 5. Örneklem Seçimi
 
 Araştırmada kamuya açık GitHub depolarında bulunan Python projeleri incelenecektir. Başlangıçta 20–30 benzersiz paket-sürüm kaydının değerlendirilmesi hedeflenmektedir.
 
@@ -78,20 +78,20 @@ Araştırmada kamuya açık GitHub depolarında bulunan Python projeleri incelen
     Paket sürümünün güvenlik kayıtlarıyla karşılaştırılabilmesi.
 
 Sürüm bilgisi doğrulanamayan veya güvenilir biçimde eşleştirilemeyen kayıtlar ayrıca işaretlenecektir. Nihai örneklem büyüklüğü, veri toplama ve doğrulama işlemleri tamamlandıktan sonra raporlanacaktır.
-6. Değişkenler ve Ölçüm Yöntemleri
-6.1. Paket sürüm yaşı
+# 6. Değişkenler ve Ölçüm Yöntemleri
+## 6.1. Paket sürüm yaşı
 
 Paket sürümünün yayın tarihi ile veri toplama tarihi arasındaki gün sayısı olarak hesaplanacaktır. Yayın tarihi doğrulanamayan kayıtlar eksik veri olarak işaretlenecektir.
-6.2. Bilinen güvenlik açığı sayısı
+## 6.2. Bilinen güvenlik açığı sayısı
 
 İncelenen paket sürümüyle ilişkili olduğu doğrulanan benzersiz güvenlik açığı kayıtlarının sayısı hesaplanacaktır. Güvenlik açığının ilgili sürümü etkileyip etkilemediği, kaynakta bulunan etkilenen sürüm bilgileri dikkate alınarak değerlendirilecektir.
-6.3. Güvenlik açığı ciddiyeti
+## 6.3. Güvenlik açığı ciddiyeti
 
 Güvenlik açığı kayıtlarında mevcutsa CVSS puanı veya kaynakta belirtilen ciddiyet düzeyi kullanılacaktır. Ciddiyet bilgisi bulunmayan kayıtlar sıfır ciddiyetli kabul edilmeyecek, eksik bilgi olarak işaretlenecektir.
-6.4. Veri kaynağı ve doğrulama bilgisi
+## 6.4. Veri kaynağı ve doğrulama bilgisi
 
 Her kayıt için kullanılan veri kaynağı ve mümkün olduğunda ilgili güvenlik açığı kimliği tutulacaktır. Aynı güvenlik açığının farklı kaynaklarda tekrar yer alması durumunda mükerrer sayımı önlemek için kayıtlar kontrol edilecektir.
-7. Veri Analizi
+# 7. Veri Analizi
 
 Veri toplama tamamlandıktan sonra veriler temizlenecek, yinelenen kayıtlar kontrol edilecek ve eksik bilgiler belgelenecektir.
 
@@ -108,7 +108,7 @@ Analiz kapsamında:
 Veri miktarı ve uygunluğu yeterliyse sıralamalar arasındaki ilişkiyi değerlendirmek için Spearman sıra korelasyonu kullanılabilecektir. Bu analizin uygulanıp uygulanmayacağı, veri setinin yapısı ve eksik verilerin durumu incelendikten sonra belirlenecektir.
 
 Birleşik risk puanı oluşturulması durumunda puanlama formülü, değişkenlerin ağırlıkları ve normalleştirme yöntemi açıkça belgelenecektir. Birleşik puan, yöntemi tanımlanmadan doğrulanmış bir güvenlik ölçüsü olarak sunulmayacaktır.
-8. Geçerlilik Tehditleri ve Sınırlılıklar
+# 8. Geçerlilik Tehditleri ve Sınırlılıklar
 
 Araştırmanın sonuçları aşağıdaki sınırlılıklar çerçevesinde yorumlanacaktır:
 
@@ -126,11 +126,11 @@ Araştırmanın sonuçları aşağıdaki sınırlılıklar çerçevesinde yoruml
 
     Göstergeler arasındaki ilişki, doğrudan bir neden-sonuç ilişkisi olduğunu kanıtlamaz.
 
-9. Yeniden Üretilebilirlik
+# 9. Yeniden Üretilebilirlik
 
 Araştırmanın yeniden üretilebilirliğini desteklemek amacıyla veri kaynakları, veri toplama tarihi, sorgu ölçütleri, veri temizleme kararları ve analiz adımları belgelenecektir.
 
 Uygulama geliştikçe kaynak kodu, kullanım talimatları, uygun örnek veri ve doğrulanmış analiz çıktıları GitHub deposuna eklenecektir. Gerçekleştirilmeyen işlemler veya elde edilmeyen sonuçlar tamamlanmış çalışma olarak raporlanmayacaktır.
-10. Mevcut Durum
+# 10. Mevcut Durum
 
 Bu belge araştırmanın planlanan yöntemini ve tasarımını açıklamaktadır. Veri toplama, kod geliştirme ve analiz işlemleri tamamlandıkça ilgili bölümler gerçek uygulama sonuçlarına göre güncellenecektir.
