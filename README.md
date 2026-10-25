@@ -1,6 +1,6 @@
 # DepGuard
 
-**Python projelerindeki paket bağımlılıklarının güvenlik risklerini inceleyen bir araştırma projesi.**
+**Python projelerindeki paketlerin güvenlik risklerini inceleyen bir araştırma projesi.**
 
 DepGuard, GitHub'daki açık kaynak Python projelerinin kullandığı paketleri analiz ederek bilinen güvenlik açıklarını belirlemeyi ve paketlerin risk göstergelerini karşılaştırmayı amaçlar.
 
@@ -13,7 +13,7 @@ DepGuard, GitHub'daki açık kaynak Python projelerinin kullandığı paketleri 
 
 ##  Nasıl Çalışır?
 
-1. GitHub projelerinin bağımlılık dosyaları incelenir.
+1. GitHub projelerinin paket dosyaları incelenir.
 2. Paket ve sürüm bilgileri PyPI üzerinden kontrol edilir.
 3. Bilinen güvenlik açıkları OSV.dev üzerinden sorgulanır.
 4. Elde edilen veriler analiz edilerek risk göstergeleri karşılaştırılır.
@@ -26,7 +26,7 @@ DepGuard, GitHub'daki açık kaynak Python projelerinin kullandığı paketleri 
 - **Pandas:** Veri işleme
 - **Matplotlib:** Grafik oluşturma
 
-## ⚠️ Sınırlılıklar
+## ⚠️ Dikkat
 
 DepGuard, bilinmeyen güvenlik açıklarını keşfetmez ve bir paketin kesin olarak saldırıya açık olduğunu kanıtlamaz. Eski sürüm kullanılması tek başına güvenlik açığı olduğu anlamına gelmez. Sonuçlar, kamuya açık güvenlik kayıtlarına dayalı risk göstergeleri olarak değerlendirilmelidir.
 
