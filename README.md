@@ -31,17 +31,17 @@ DepGuard, GitHub'daki açık kaynak Python projelerinin kullandığı paketleri 
 Aşağıdaki diyagramlar, kodlama aşamasından önce sistemin yapısını ve işleyişini modellemek için hazırlanmıştır.
 
 ### 1. Use Case Diagram
-![Use Case Diagram](docs/uml/01-use-case-diagram.png)
+![Use Case Diagram](docs/uml/use-case-diagram.png)
 
 Araştırmacının sistemle yapabileceği işlemleri gösterir: proje seçme, analizi başlatma, karşılaştırma, tablo/grafik oluşturma ve CSV dışa aktarma. GitHub, PyPI ve OSV.dev harici sistemler olarak gösterilmiştir.
 
 ### 2. Activity Diagram
-![Activity Diagram](docs/uml/02-activity-diagram.png)
+![Activity Diagram](docs/uml/activity-diagram.png)
 
 GitHub projelerinin paketlerinin analiz sürecini gösterir: bağımlılık dosyasının alınması, paketlerin PyPI ve OSV.dev ile kontrolü, risk skorunun hesaplanması ve sonuçların tablo/grafik olarak sunulması. Dosyanın bulunamaması ve açık kaydının olup olmaması karar noktalarıdır.
 
 ### 3. Class Diagram
-![Class Diagram](docs/uml/03-class-diagram.png)
+![Class Diagram](docs/uml/class-diagram.png)
 
 Projenin temel sınıflarını gösterir: Project, Package, Vulnerability, RiskScore; veri toplayan GitHubClient, RequirementsParser, PyPIClient ve OSVClient; analiz yapan RiskAnalyzer; çıktı üreten ReportGenerator.
 
