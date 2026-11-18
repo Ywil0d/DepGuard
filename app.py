@@ -11,7 +11,7 @@ from core.osv_scanner import check_package_vulnerabilities
 from core.risk_analyzer import calculate_risk_metrics
 
 st.set_page_config(page_title="DepGuard", page_icon="🛡️", layout="wide")
-st.title("🛡️ DepGuard - Python Güvenlik ve Bağımlılık Analiz Platformu")
+st.title("DepGuard - Python Güvenlik ve Bağımlılık Analiz Platformu")
 
 # Yan Menü
 with st.sidebar:
