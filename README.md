@@ -5,10 +5,7 @@
 DepGuard, GitHub'daki açık kaynak Python projelerinin kullandığı paketleri analiz ederek bilinen güvenlik açıklarını belirlemeyi ve paketlerin risk göstergelerini karşılaştırmayı amaçlar.
 ## Live Demo
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://depguard.streamlit.app/)
-
-Try DepGuard online:
-
-[Open DepGuard](https://depguard.streamlit.app/)
+[Or Open DepGuard](https://depguard.streamlit.app/)
 
 ##  Projenin Amacı
 
