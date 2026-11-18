@@ -1,141 +1,52 @@
 import requests
 
-from utils.helpers import format_severity
+OSV_API_URL = "https://api.osv.dev/v1/query"
 
-
-OSV_QUERY_URL = "https://api.osv.dev/v1/query"
-
-
-def _extract_severity(vulnerability: dict) -> str:
-    """
-    OSV kaydından bilinen önem derecesini çıkarmaya çalışır.
-    """
-
-    # Önce advisory genelindeki database_specific alanına bak.
-    database_specific = vulnerability.get("database_specific", {})
-
-    severity = database_specific.get("severity")
-
-    if severity:
-        return format_severity(severity)
-
-    # Ardından etkilenen paketlerin metadata alanlarına bak.
-    for affected in vulnerability.get("affected", []):
-
-        ecosystem_specific = affected.get("ecosystem_specific", {})
-        database_specific = affected.get("database_specific", {})
-
-        severity = (
-            ecosystem_specific.get("severity")
-            or database_specific.get("severity")
-        )
-
-        if severity:
-            return format_severity(severity)
-
-    return "Bilinmiyor"
-
-
-def _extract_fixed_versions(vulnerability: dict) -> list[str]:
-    """
-    OSV affected ranges içinden düzeltilmiş sürümleri çıkarır.
-    """
-
-    fixed_versions = set()
-
-    for affected in vulnerability.get("affected", []):
-        for version_range in affected.get("ranges", []):
-            for event in version_range.get("events", []):
-                fixed = event.get("fixed")
-
-                if fixed:
-                    fixed_versions.add(fixed)
-
-    return sorted(fixed_versions)
-
-
-def scan_dependency(dependency: dict) -> dict:
-    """
-    Tek bir Python bağımlılığını OSV üzerinden tarar.
-    """
-
-    if not dependency.get("is_pinned"):
-        return {
-            "package": dependency["name"],
-            "version": None,
-            "status": "Sürüm doğrulanamadı",
-            "vulnerabilities": [],
-            "error": None,
-        }
-
+def check_package_vulnerabilities(package_name: str, version: str) -> dict:
     payload = {
         "package": {
-            "name": dependency["name"],
-            "ecosystem": "PyPI",
-        },
-        "version": dependency["version"],
+            "name": package_name,
+            "ecosystem": "PyPI"
+        }
     }
+    if version and version != "Unknown":
+        payload["version"] = version
 
     try:
-        response = requests.post(
-            OSV_QUERY_URL,
-            json=payload,
-            timeout=25,
-        )
+        resp = requests.post(OSV_API_URL, json=payload, timeout=10)
+        if resp.status_code != 200:
+            return {"status": "API Hatası", "vulns": [], "error": f"HTTP {resp.status_code}"}
 
-        response.raise_for_status()
+        data = resp.json()
+        vulns = data.get("vulns", [])
+        parsed_vulns = []
 
-        data = response.json()
+        for v in vulns:
+            severity = "MEDIUM"
+            db_specific = v.get("database_specific", {})
+            if "severity" in db_specific:
+                severity = db_specific["severity"].upper()
+            elif v.get("severity"):
+                score_str = str(v["severity"][0].get("score", ""))
+                if "CRITICAL" in score_str:
+                    severity = "CRITICAL"
+                elif "HIGH" in score_str:
+                    severity = "HIGH"
+                elif "LOW" in score_str:
+                    severity = "LOW"
 
-        vulnerabilities = []
-
-        for vulnerability in data.get("vulns", []):
-            vulnerabilities.append({
-                "id": vulnerability.get("id", "Bilinmiyor"),
-                "summary": vulnerability.get(
-                    "summary",
-                    "Açıklama bulunamadı.",
-                ),
-                "severity": _extract_severity(vulnerability),
-                "fixed_versions": _extract_fixed_versions(
-                    vulnerability
-                ),
-                "details_url": (
-                    "https://osv.dev/vulnerability/"
-                    + vulnerability.get("id", "")
-                ),
+            parsed_vulns.append({
+                "id": v.get("id", "N/A"),
+                "summary": v.get("summary", v.get("details", "Açıklama bulunmuyor")[:150]),
+                "severity": severity,
+                "aliases": ", ".join(v.get("aliases", []))
             })
 
+        status_text = "Doğrulandı" if (version and version != "Unknown") else "Sürüm doğrulanamadı"
         return {
-            "package": dependency["name"],
-            "version": dependency["version"],
-            "status": (
-                "Güvenlik açığı bulundu"
-                if vulnerabilities
-                else "Kayıtlı açık bulunamadı"
-            ),
-            "vulnerabilities": vulnerabilities,
-            "error": None,
+            "status": status_text,
+            "vulns": parsed_vulns,
+            "error": None
         }
-
-    except requests.RequestException as error:
-        return {
-            "package": dependency["name"],
-            "version": dependency["version"],
-            "status": "Sorgulama başarısız",
-            "vulnerabilities": [],
-            "error": str(error),
-        }
-
-
-def scan_dependencies(dependencies: list[dict]) -> list[dict]:
-    """
-    Bağımlılık listesindeki bütün paketleri tarar.
-    """
-
-    results = []
-
-    for dependency in dependencies:
-        results.append(scan_dependency(dependency))
-
-    return results
+    except Exception as e:
+        return {"status": "Bağlantı Hatası", "vulns": [], "error": str(e)}

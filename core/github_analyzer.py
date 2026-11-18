@@ -1,147 +1,82 @@
+import requests
 import base64
 
-import requests
+def parse_repo_url(repo_input: str) -> tuple[str, str]:
+    clean = repo_input.strip().rstrip("/")
+    if "github.com/" in clean:
+        clean = clean.split("github.com/")[-1]
+    if clean.endswith(".git"):
+        clean = clean[:-4]
+    parts = clean.split("/")
+    if len(parts) < 2:
+        raise ValueError("Geçersiz GitHub depo formatı. Örnek: psf/requests")
+    return parts[0], parts[1]
 
-from core.dependency_parser import (
-    parse_requirements_txt,
-    parse_pyproject_toml,
-    merge_dependencies,
-)
-from utils.helpers import parse_github_url
+def _fetch_via_raw_fallback(owner: str, repo: str) -> dict[str, str]:
+    """GitHub API limiti dolduğunda raw.githubusercontent.com üzerinden doğrudan dosya çeker."""
+    found_files = {}
+    branches = ["main", "master"]
+    filenames = ["requirements.txt", "pyproject.toml"]
 
+    for branch in branches:
+        for filename in filenames:
+            raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{filename}"
+            resp = requests.get(raw_url, timeout=10)
+            if resp.status_code == 200 and resp.text.strip():
+                found_files[filename] = resp.text
+        if found_files:
+            break
 
-GITHUB_API = "https://api.github.com"
+    return found_files
 
-
-def _get_github_file(owner: str, repo: str, file_path: str):
-    """
-    GitHub deposundan tek bir dosyanın içeriğini alır.
-    """
-
-    url = f"{GITHUB_API}/repos/{owner}/{repo}/contents/{file_path}"
-
+def fetch_dependency_files(owner: str, repo: str, token: str | None = None) -> dict[str, str]:
     headers = {
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "DepGuard-Security-Analyzer",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "DepGuard-Scanner"
     }
+    if token:
+        headers["Authorization"] = f"token {token}"
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=20,
-    )
+    repo_url = f"https://api.github.com/repos/{owner}/{repo}"
+    repo_resp = requests.get(repo_url, headers=headers, timeout=10)
 
-    if response.status_code == 404:
-        return None
-
-    if response.status_code == 403:
+    # Rate limit (403/429) durumunda otomatik olarak Raw URL yedeğine geç
+    if repo_resp.status_code in (403, 429):
+        fallback_files = _fetch_via_raw_fallback(owner, repo)
+        if fallback_files:
+            return fallback_files
         raise RuntimeError(
-            "GitHub API erişim sınırına ulaşılmış olabilir. "
-            "Bir süre sonra tekrar dene."
+            "GitHub API istek sınırı doldu ve kök dizinde dosya bulunamadı. "
+            "Alt klasörleri taramak için sol menüden ücretsiz bir GitHub Token girebilirsin."
         )
 
-    response.raise_for_status()
+    if repo_resp.status_code == 404:
+        raise RuntimeError(f"'{owner}/{repo}' deposu bulunamadı veya gizli (Private).")
+    repo_resp.raise_for_status()
 
-    file_data = response.json()
+    default_branch = repo_resp.json().get("default_branch", "main")
 
-    if file_data.get("type") != "file":
-        return None
+    tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{default_branch}?recursive=1"
+    tree_resp = requests.get(tree_url, headers=headers, timeout=10)
 
-    content = file_data.get("content", "")
-    encoding = file_data.get("encoding")
+    if tree_resp.status_code in (403, 429):
+        return _fetch_via_raw_fallback(owner, repo)
 
-    if encoding != "base64":
-        raise RuntimeError(
-            f"{file_path} dosyasının kodlaması desteklenmiyor."
+    tree_resp.raise_for_status()
+
+    tree_items = tree_resp.json().get("tree", [])
+    target_paths = [
+        item["path"] for item in tree_items
+        if item["type"] == "blob" and (
+            item["path"].endswith("requirements.txt") or item["path"].endswith("pyproject.toml")
         )
+    ]
 
-    decoded = base64.b64decode(content).decode("utf-8")
+    found_files = {}
+    for file_path in target_paths[:3]:
+        raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{default_branch}/{file_path}"
+        resp = requests.get(raw_url, timeout=10)
+        if resp.status_code == 200:
+            found_files[file_path] = resp.text
 
-    return decoded
-
-
-def analyze_github_repository(repo_url: str) -> dict:
-    """
-    GitHub deposunu inceler.
-
-    Şimdilik yalnızca kök dizindeki:
-    - requirements.txt
-    - pyproject.toml
-
-    dosyalarını analiz eder.
-    """
-
-    owner, repo = parse_github_url(repo_url)
-
-    result = {
-        "owner": owner,
-        "repo": repo,
-        "repository_url": f"https://github.com/{owner}/{repo}",
-        "files_found": [],
-        "dependencies": [],
-        "warnings": [],
-    }
-
-    all_dependencies = []
-
-    # requirements.txt
-    try:
-        requirements_content = _get_github_file(
-            owner,
-            repo,
-            "requirements.txt",
-        )
-
-        if requirements_content is not None:
-            result["files_found"].append("requirements.txt")
-
-            dependencies = parse_requirements_txt(
-                requirements_content
-            )
-
-            all_dependencies.append(dependencies)
-
-    except requests.RequestException as error:
-        result["warnings"].append(
-            f"requirements.txt alınamadı: {error}"
-        )
-
-    except Exception as error:
-        result["warnings"].append(str(error))
-
-    # pyproject.toml
-    try:
-        pyproject_content = _get_github_file(
-            owner,
-            repo,
-            "pyproject.toml",
-        )
-
-        if pyproject_content is not None:
-            result["files_found"].append("pyproject.toml")
-
-            dependencies = parse_pyproject_toml(
-                pyproject_content
-            )
-
-            all_dependencies.append(dependencies)
-
-    except requests.RequestException as error:
-        result["warnings"].append(
-            f"pyproject.toml alınamadı: {error}"
-        )
-
-    except Exception as error:
-        result["warnings"].append(str(error))
-
-    result["dependencies"] = merge_dependencies(
-        *all_dependencies
-    )
-
-    if not result["files_found"]:
-        result["warnings"].append(
-            "Depo kök dizininde desteklenen bağımlılık dosyası bulunamadı."
-        )
-
-    return result
+    return found_files

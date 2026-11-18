@@ -2,3 +2,13 @@ streamlit>=1.40.0
 requests>=2.32.0
 packaging>=24.0
 pandas>=2.2.0
+requests==2.19.0
+urllib3==1.24.1
+PyYAML==5.3.1
+Flask==0.12.2
+packages = []
+        for path, content in files.items():
+            if path.endswith("requirements.txt"):
+                packages.extend(parse_requirements_txt(content))
+            elif path.endswith("pyproject.toml"):
+                packages.extend(parse_pyproject_toml(content))

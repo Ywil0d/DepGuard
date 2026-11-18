@@ -1,215 +1,98 @@
 import re
 import tomllib
+import requests
 
-from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
+def get_latest_pypi_version(package_name: str) -> str | None:
+    """Sürüm belirtilmemiş veya aralık verilmiş paketler için PyPI'dan en güncel sürümü çeker."""
+    try:
+        resp = requests.get(f"https://pypi.org/pypi/{package_name}/json", timeout=5)
+        if resp.status_code == 200:
+            return resp.json().get("info", {}).get("version")
+    except Exception:
+        pass
+    return None
 
-
-def _build_dependency(
-    name: str,
-    version_spec: str,
-    source_file: str
-) -> dict:
+def parse_dependency_line(line: str) -> tuple[str, str | None, str]:
     """
-    Bağımlılık için standart bir veri yapısı oluşturur.
+    Tek bir bağımlılık satırını ayrıştırır.
+    Dönüş: (paket_adi, surum, durum_notu)
     """
+    line = line.strip()
+    if not line or line.startswith("#") or line.startswith("-"):
+        return "", None, ""
 
-    version_spec = (version_spec or "").strip()
+    # Ortam belirteçlerini (; python_version < "3.10" vb.) temizle
+    line = line.split(";")[0].strip()
+    # Ekstra özellikleri ([security], [socks] vb.) temizle
+    line = re.sub(r"\[.*?\]", "", line).strip()
 
-    pinned_version = None
-    is_pinned = False
+    # Sabit sürüm (==) kontrolü
+    exact_match = re.match(r"^([A-Za-z0-9_.-]+)\s*==\s*([A-Za-z0-9_.*+-]+)", line)
+    if exact_match:
+        return exact_match.group(1), exact_match.group(2), "Sabit sürüm doğrulandı"
 
-    # Yalnızca tek ve kesin == sürümünü sabit sürüm kabul ediyoruz.
-    # Örnek: ==2.31.0
-    if version_spec.startswith("==") and "," not in version_spec:
-        candidate = version_spec[2:].strip()
+    # Sürüm aralığı (>=, <=, ~=, >, <) kontrolü
+    range_match = re.match(r"^([A-Za-z0-9_.-]+)\s*(?:>=|<=|~=|>|<|!=)\s*([0-9]+(?:\.[0-9]+)*)", line)
+    if range_match:
+        pkg_name = range_match.group(1)
+        min_ver = range_match.group(2)
+        latest_ver = get_latest_pypi_version(pkg_name)
+        if latest_ver:
+            return pkg_name, latest_ver, f"Aralık tanımı -> Güncel PyPI ({latest_ver}) baz alındı"
+        return pkg_name, min_ver, f"Aralık alt sınırı ({min_ver}) baz alındı"
 
-        if candidate and "*" not in candidate:
-            pinned_version = candidate
-            is_pinned = True
+    # Sadece paket adı yazılmışsa
+    name_only = re.match(r"^([A-Za-z0-9_.-]+)$", line)
+    if name_only:
+        pkg_name = name_only.group(1)
+        latest_ver = get_latest_pypi_version(pkg_name)
+        if latest_ver:
+            return pkg_name, latest_ver, f"Sürüm belirtilmemiş -> Güncel PyPI ({latest_ver}) baz alındı"
+        return pkg_name, None, "Sürüm doğrulanamadı"
 
-    return {
-        "name": name.strip(),
-        "normalized_name": canonicalize_name(name),
-        "version_spec": version_spec or "Belirtilmemiş",
-        "version": pinned_version,
-        "is_pinned": is_pinned,
-        "source_file": source_file,
-    }
-
+    return "", None, ""
 
 def parse_requirements_txt(content: str) -> list[dict]:
-    """
-    requirements.txt içeriğini ayrıştırır.
-
-    Örnek:
-    requests==2.31.0
-    django>=4.2
-    flask
-    """
-
-    dependencies = []
-    seen = set()
-
-    for raw_line in content.splitlines():
-        line = raw_line.strip()
-
-        if not line or line.startswith("#"):
-            continue
-
-        if line.startswith(("-", "--")):
-            # -r, -e, --index-url gibi pip seçeneklerini
-            # bu ilk sürümde analiz etmiyoruz.
-            continue
-
-        # Inline yorumları temizle.
-        line = re.split(r"\s+#", line, maxsplit=1)[0].strip()
-
-        try:
-            requirement = Requirement(line)
-
-            # Doğrudan URL bağımlılıklarını bu sürümde
-            # sürüm bazlı OSV sorgusuna dahil etmiyoruz.
-            if requirement.url:
-                continue
-
-            name = requirement.name
-            version_spec = str(requirement.specifier)
-
-            dependency = _build_dependency(
-                name=name,
-                version_spec=version_spec,
-                source_file="requirements.txt",
-            )
-
-            key = dependency["normalized_name"]
-
-            if key not in seen:
-                dependencies.append(dependency)
-                seen.add(key)
-
-        except Exception:
-            # Hatalı veya desteklenmeyen satırı atla.
-            continue
-
-    return dependencies
-
-
-def _parse_poetry_dependencies(poetry_dependencies: dict) -> list[dict]:
-    """
-    Poetry bağımlılıklarını ayrıştırır.
-    """
-
-    dependencies = []
-
-    for name, value in poetry_dependencies.items():
-
-        # Python sürümü bir paket bağımlılığı değildir.
-        if name.lower() == "python":
-            continue
-
-        if isinstance(value, str):
-            version_spec = value
-
-        elif isinstance(value, dict):
-            # Git, path veya URL bağımlılıklarını şimdilik atla.
-            if any(key in value for key in ("git", "path", "url")):
-                continue
-
-            version_spec = str(value.get("version", ""))
-
-        else:
-            continue
-
-        # Poetry sürüm ifadelerini PEP 440 formatına
-        # otomatik çevirmiyoruz. Örneğin ^1.2 kesin sürüm değildir.
-        dependency = _build_dependency(
-            name=name,
-            version_spec=version_spec,
-            source_file="pyproject.toml",
-        )
-
-        dependencies.append(dependency)
-
-    return dependencies
-
+    packages = []
+    for line in content.splitlines():
+        name, version, note = parse_dependency_line(line)
+        if name:
+            packages.append({
+                "name": name,
+                "version": version or "Unknown",
+                "note": note,
+                "is_pinned": "==" in line.split(";", 1)[0] and version is not None,
+            })
+    return packages
 
 def parse_pyproject_toml(content: str) -> list[dict]:
-    """
-    pyproject.toml dosyasındaki bağımlılıkları ayrıştırır.
-
-    Desteklenen bölümler:
-    - [project] dependencies
-    - [tool.poetry.dependencies]
-    """
-
+    packages = []
     try:
         data = tomllib.loads(content)
-    except tomllib.TOMLDecodeError as error:
-        raise ValueError(f"pyproject.toml okunamadı: {error}") from error
+        deps = data.get("project", {}).get("dependencies", [])
+        # Poetry desteği
+        if not deps:
+            poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
+            deps = []
+            for name, constraint in poetry_deps.items():
+                if name.lower() == "python" or not isinstance(constraint, str) or constraint == "*":
+                    continue
+                if constraint.startswith(("^", "~")):
+                    deps.append(f"{name}>={constraint.lstrip('^~')}")
+                elif constraint.startswith(("<", ">", "=")):
+                    deps.append(f"{name}{constraint}")
+                else:
+                    deps.append(f"{name}=={constraint}")
 
-    dependencies = []
-
-    # Standart PEP 621 yapısı.
-    project_dependencies = data.get("project", {}).get("dependencies", [])
-
-    for item in project_dependencies:
-        try:
-            requirement = Requirement(item)
-
-            if requirement.url:
-                continue
-
-            dependencies.append(
-                _build_dependency(
-                    name=requirement.name,
-                    version_spec=str(requirement.specifier),
-                    source_file="pyproject.toml",
-                )
-            )
-
-        except Exception:
-            continue
-
-    # Poetry yapısı.
-    poetry_dependencies = (
-        data.get("tool", {})
-        .get("poetry", {})
-        .get("dependencies", {})
-    )
-
-    if isinstance(poetry_dependencies, dict):
-        dependencies.extend(
-            _parse_poetry_dependencies(poetry_dependencies)
-        )
-
-    # Aynı paket iki yerde tanımlanmışsa tek kayıt tut.
-    unique_dependencies = {}
-    for dependency in dependencies:
-        key = dependency["normalized_name"]
-
-        if key not in unique_dependencies:
-            unique_dependencies[key] = dependency
-
-    return list(unique_dependencies.values())
-
-
-def merge_dependencies(*dependency_lists: list[dict]) -> list[dict]:
-    """
-    Birden fazla bağımlılık listesini birleştirir.
-    Aynı paket tekrar ederse kesin sürüm bilgisi olanı tercih eder.
-    """
-
-    merged = {}
-
-    for dependency_list in dependency_lists:
-        for dependency in dependency_list:
-            key = dependency["normalized_name"]
-
-            if key not in merged:
-                merged[key] = dependency
-
-            elif dependency["is_pinned"] and not merged[key]["is_pinned"]:
-                merged[key] = dependency
-
-    return list(merged.values())
+        for dep in deps:
+            name, version, note = parse_dependency_line(dep)
+            if name:
+                packages.append({
+                    "name": name,
+                    "version": version or "Unknown",
+                    "note": note,
+                    "is_pinned": "==" in dep and version is not None,
+                })
+    except Exception as e:
+        print(f"pyproject.toml ayrıştırma hatası: {e}")
+    return packages
